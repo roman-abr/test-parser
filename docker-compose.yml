@@ -1,0 +1,57 @@
+version: "3.3"
+
+services:
+
+  chromium:
+    image: selenium/standalone-chrome:latest
+    networks:
+      - internal
+    privileged: true
+    shm_size: 2g
+
+  worker:
+    build:
+      context: .
+    image: worker-node
+    env_file: docker-compose.env
+    environment:
+      SERVICES: WORKER
+    depends_on:
+      - mongodb
+      - chromium
+      - redis
+    networks:
+      - internal
+    restart: always
+
+  app:
+    build:
+      context: .
+    image: parser-node
+    env_file: docker-compose.env
+    environment:
+      SERVICES: MAIN
+    depends_on:
+      - mongodb
+      - worker
+      - redis
+    ports:
+      - 8080:3000
+    networks:
+      - internal
+    restart: always
+
+  mongodb:
+    image: mongo
+    ports: 
+      - 27017:27017
+    networks:
+      - internal
+
+  redis:
+    image: redis:alpine
+    networks:
+      - internal
+
+networks:
+  internal:
